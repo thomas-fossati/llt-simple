@@ -24,8 +24,9 @@ function save_results() {
 function main() {
   local base_from=$1 base_to=$2
 
-  rm -vf $(basename $(pwd)).zip
-
+  zipname=`printf "%s-%s.zip" $(basename $(pwd)) $(date "+%Y%M%d-%H%m")`
+  rm -vf ${zipname}
+  
   for video in "false" "true"
   do
 	  [ "$video" == "true" ] && vtag="video"
@@ -42,7 +43,6 @@ function main() {
 		  save_results ${base_from} ${base_to}/${vtag}/${mtag}
 	  done
   done
-  zipname=`printf "%s-%s.zip" $(basename $(pwd)) $(date "+%Y%M%d-%H%m")`
   zip -9rD ${zipname} $2
 }
 
