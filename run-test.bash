@@ -36,8 +36,8 @@ function main() {
 		  [ "$marking" == "true" ] && mtag="mark"
 		  [ "$marking" == "true" ] || mtag="nomark"
 
-		  local tag="llt-simple-marking-${marking}"
-		  echo ">> Running trial with marking ${marking}"
+		  local tag="llt-simple-marking-${vtag}-${mtag}"
+		  echo ">> Running ${vtag} trial with marking ${marking}"
 		  NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --video=${video} --run=${tag}"
 		  save_results ${base_from} ${base_to}/${vtag}/${mtag}
 	  done
