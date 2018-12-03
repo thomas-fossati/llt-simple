@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Create the LaTEX tables from the sca files"""
+
+import os
+import re
+import sys
+import argparse
+from zipfile import ZipFile
+
+statRe = re.compile(r'^field (m(ean|in|ax)) (\d+(\.\d+)?)')
+valRe =re.compile(r'^statistic . real time app (delay|jitter)')
+
+def main():
+    fields = [ 'mean', 'min', 'max' ]
+    stream = [ 'audio', 'video' ]
+    mark =   [ 'nomark', 'mark' ]
+    smark =  [ 'false', 'true' ]
+    parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter,epilog="")
+    parser.add_argument("ZIP", metavar="ZIP", type=str, help="ZIP file with simulation results")
+
+    args = parser.parse_args()
+    print('Contents of {}:\n '.format(args.ZIP),end='',file=sys.stderr)
+    with ZipFile(args.ZIP) as simul:
+        # print("\n ".join([l for l in simul.namelist() if l.endswith('.sca')]),file=sys.stderr)
+        for s in stream:
+            for m in mark:
+                for n in smark:
+                    elem = 'results/{}/{}/data-llt-simple-marking-{}.sca'.format(s,m,n)
+                    if elem not in simul.namelist():
+                        continue
+                    # print (">>Analysing {}".format(elem),file=sys.stderr)
+                    result = dict()
+                    statType = None
+                    with simul.open(elem,'r') as myfile:
+                        for l in myfile.readlines():
+                            line = l.decode().strip()
+                            mStat = statRe.match(line)
+                            mVal  = valRe.match(line)
+                            if mStat is None and mVal is None:
+                                continue
+                            if mVal is not None:
+                                statType = mVal.group(1)
+                                result[statType] = dict()
+
+                            if mStat is not None:
+                                rDict = result[statType]
+                                rDict[mStat.group(1)] = mStat.group(3)
+                    # print ("Parsed {} and obtained ".format(elem),file=sys.stderr)
+                    # print (result,file=sys.stderr)
+                    print ("{} & {} & {} &".format(s,n,m), end=' ')
+                    for f in fields:
+                        print ("{} & ".format(result['delay'][f]),end='')
+                    print ("{} \\\\".format(result['jitter']['mean']))
+
+if __name__ == "__main__":
+    main()
