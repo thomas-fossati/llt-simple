@@ -24,13 +24,26 @@ function save_results() {
 function main() {
   local base_from=$1 base_to=$2
 
-  for marking in "false" "true"
+  zipname=`printf "%s-%s.zip" $(basename $(pwd)) $(date "+%Y%M%d-%H%m")`
+  rm -vf ${zipname}
+  
+  for video in "false" "true"
   do
-    local tag="llt-simple-marking-${marking}"
-    echo ">> Running trial with marking ${marking}"
-    NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --run=${tag}"
-    save_results ${base_from} ${base_to}/${marking}
+	  [ "$video" == "true" ] && vtag="video"
+	  [ "$video" == "true" ] || vtag="audio"
+
+	  for marking in "false" "true"
+	  do
+		  [ "$marking" == "true" ] && mtag="mark"
+		  [ "$marking" == "true" ] || mtag="nomark"
+
+		  local tag="llt-simple-marking-${vtag}-${mtag}"
+		  echo ">> Running ${vtag} trial with marking ${marking}"
+		  NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --video=${video} --run=${tag}"
+		  save_results ${base_from} ${base_to}/${vtag}/${mtag}
+	  done
   done
+  zip -9rD ${zipname} $2
 }
 
 main $*
