@@ -28,25 +28,22 @@ function main() {
 
   for video in "false" "true"
   do
-	  if [ "$video" == "true" ]; then
-		  vtag="video"
-	  else
-		  vtag="audio"
-	  fi
+	  [ "$video" == "true" ] && vtag="video"
+	  [ "$video" == "true" ] || vtag="audio"
+
 	  for marking in "false" "true"
 	  do
-		  if [ "$marking" == "false" ]; then
-			  mtag="mark"
-		  else
-			  mtag="nomark"
-		  fi
+		  [ "$marking" == "true" ] && mtag="mark"
+		  [ "$marking" == "true" ] || mtag="nomark"
+
 		  local tag="llt-simple-marking-${marking}"
 		  echo ">> Running trial with marking ${marking}"
 		  NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --video=${video} --run=${tag}"
 		  save_results ${base_from} ${base_to}/${vtag}/${mtag}
 	  done
   done
-  zip -9rD $(basename $(pwd)) $2
+  zipname=`printf "%s-%s.zip" $(basename $(pwd)) $(date "+%Y%M%d-%H%m")`
+  zip -9rD ${zipname} $2
 }
 
 main $*
