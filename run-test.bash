@@ -24,13 +24,29 @@ function save_results() {
 function main() {
   local base_from=$1 base_to=$2
 
-  for marking in "false" "true"
+  rm -vf $(basename $(pwd)).zip
+
+  for video in "false" "true"
   do
-    local tag="llt-simple-marking-${marking}"
-    echo ">> Running trial with marking ${marking}"
-    NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --run=${tag}"
-    save_results ${base_from} ${base_to}/${marking}
+	  if [ "$video" == "true" ]; then
+		  vtag="video"
+	  else
+		  vtag="audio"
+	  fi
+	  for marking in "false" "true"
+	  do
+		  if [ "$marking" == "false" ]; then
+			  mtag="mark"
+		  else
+			  mtag="nomark"
+		  fi
+		  local tag="llt-simple-marking-${marking}"
+		  echo ">> Running trial with marking ${marking}"
+		  NS_LOG="LLTSimple" ../../waf --run "llt-simple --ns3::PointToPointEpcHelper::S1uLinkDataRate=$S1_BW --marking-enabled=${marking} --video=${video} --run=${tag}"
+		  save_results ${base_from} ${base_to}/${vtag}/${mtag}
+	  done
   done
+  zip -9rD $(basename $(pwd)) $2
 }
 
 main $*

@@ -26,6 +26,8 @@ int
 main (int argc, char *argv[])
 {
   bool markingEnabled = true;
+  bool videoExperiment = false;
+
   std::string runId = "run-" + std::to_string (time (NULL));
   std::string experiment ("loss latency tradeoff");
   std::string strategy ("single-ue");
@@ -39,6 +41,8 @@ main (int argc, char *argv[])
                 runId);
   cmd.AddValue ("marking-enabled", "whether the LLT marking is enabled on the real-time flow(s).",
                 markingEnabled);
+  cmd.AddValue ("video", "Whether we do an audio(def) or a video experiment.",
+                videoExperiment);
   cmd.Parse (argc, argv);
 
   // Configure FDD SISO (transmission mode 0) with 6 RBs, i.e. a peak downlink
@@ -158,30 +162,38 @@ main (int argc, char *argv[])
   Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Destination",
                Ipv4AddressValue (UEIpIface.GetAddress (0)));
   uint16_t dlRtPort = 1234;
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Port", UintegerValue (dlRtPort));
-#if 1 // audio
-  // - packet size: 160 PCM + 12 RTP
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/PacketSize", UintegerValue (172));
-  // - packet rate: 20ms (50 pps)
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Interval",
-               TimeValue (MilliSeconds (20)));
-  // Send for 10s at most
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/NumPackets", UintegerValue (10 * 50));
-#else // video
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/PacketSize", UintegerValue (930));
-  // - packet rate: 10ms (100 pps)
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Interval",
-               TimeValue (MilliSeconds (10)));
-  // Send for 10s at most
-  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/NumPackets",
-               UintegerValue (10 * 100));
-#endif
+  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Port",
+			   UintegerValue (dlRtPort));
+
+
+  if (videoExperiment)
+  {
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/PacketSize",
+				   UintegerValue (930));
+	  // - packet rate: 10ms (100 pps)
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Interval",
+				   TimeValue (MilliSeconds (10)));
+	  // Send for 10s at most
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/NumPackets",
+				   UintegerValue (10 * 100));
+  } else {
+	  // audio
+	  // - packet size: 160 PCM + 12 RTP
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/PacketSize",
+				   UintegerValue (172));
+	  // - packet rate: 20ms (50 pps)
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/Interval",
+				   TimeValue (MilliSeconds (20)));
+	  // Send for 10s at most
+	  Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/NumPackets",
+				   UintegerValue (10 * 50));
+  }
 
   if (markingEnabled)
-    {
+  {
       Config::Set ("/NodeList/*/ApplicationList/*/$RealtimeSender/ToS",
                    UintegerValue (LLT_LOW_LATENCY));
-    }
+  }
 
   //
   // Realtime receiver (UE)
@@ -205,6 +217,12 @@ main (int argc, char *argv[])
   rtAppDelayStat->SetKey ("real time app delay (ms)");
   receiver->SetDelayTracker (rtAppDelayStat);
   data.AddDataCalculator (rtAppDelayStat);
+
+  // Jitter (paag)
+  auto rtAppJitterStat = CreateObject<MinMaxAvgTotalCalculator<int64_t>> ();
+  rtAppJitterStat->SetKey ("real time app jitter (ms)");
+  receiver->SetJitterTracker (rtAppJitterStat);
+  data.AddDataCalculator (rtAppJitterStat);
 
   // Downlink pipe filler, no marking whatsoever
   uint16_t dlGreedyPort = 5687;

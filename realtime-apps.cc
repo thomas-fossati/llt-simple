@@ -153,6 +153,7 @@ RealtimeReceiver::RealtimeReceiver () : m_calc (nullptr), m_delay (nullptr)
   NS_LOG_FUNCTION_NOARGS ();
 
   m_socket = 0;
+  have_last_delay = false;
 }
 
 RealtimeReceiver::~RealtimeReceiver ()
@@ -213,6 +214,12 @@ RealtimeReceiver::SetDelayTracker (Ptr<MinMaxAvgTotalCalculator<int64_t>> delay)
 }
 
 void
+RealtimeReceiver::SetJitterTracker (Ptr<MinMaxAvgTotalCalculator<int64_t>> jitter)
+{
+  m_jitter = jitter;
+}
+
+void
 RealtimeReceiver::Receive (Ptr<Socket> socket)
 {
   Ptr<Packet> packet;
@@ -231,15 +238,28 @@ RealtimeReceiver::Receive (Ptr<Socket> socket)
       if (packet->FindFirstMatchingByteTag (timestamp))
         {
           Time tx = timestamp.GetTimestamp ();
+		  auto delay = Simulator::Now () - tx;
 
           if (m_delay != nullptr)
             {
-              auto delay = Simulator::Now () - tx;
-
               NS_LOG_INFO ("Computed delay " << delay);
 
               m_delay->Update (delay.GetMilliSeconds());
             }
+		  if (m_jitter != nullptr)
+		  {
+
+			  if (have_last_delay == false)
+			  {
+				  last_delay = delay;
+				  have_last_delay = true;
+			  } else {
+				  auto jitter=last_delay - delay;
+
+				  NS_LOG_INFO ("Computed jitter " << jitter);
+				  m_jitter->Update (abs(jitter.GetMilliSeconds()));
+			  }
+		  }
         }
 
       if (m_calc != nullptr)

@@ -55,6 +55,7 @@ public:
 
   void SetCounter (Ptr<CounterCalculator<>> calc);
   void SetDelayTracker (Ptr<MinMaxAvgTotalCalculator<int64_t>> delay);
+  void SetJitterTracker (Ptr<MinMaxAvgTotalCalculator<int64_t>> jitter);
 
 protected:
   virtual void DoDispose (void);
@@ -71,6 +72,11 @@ private:
 
   Ptr<CounterCalculator<>> m_calc;
   Ptr<MinMaxAvgTotalCalculator<int64_t>> m_delay;
+
+  bool  have_last_delay;
+  Time  last_delay;
+
+  Ptr<MinMaxAvgTotalCalculator<int64_t>> m_jitter;
 };
 
 //------------------------------------------------------
